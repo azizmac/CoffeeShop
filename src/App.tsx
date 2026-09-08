@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
-import { products, categories } from './data/products';
+import { categories } from './data/products';
 import { Product } from './types';
 import Header from './components/Header';
 import ProductCard from './components/ProductCard';
@@ -9,198 +9,156 @@ import CartPanel from './components/CartPanel';
 import CheckoutModal from './components/CheckoutModal';
 import ProgressPanel from './components/ProgressPanel';
 import AchievementToast from './components/AchievementToast';
+import LoginPage from './pages/LoginPage';
+import AdminPage from './pages/AdminPage';
 
-const AppContent: React.FC = () => {
-  const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('Все');
+const MainApp: React.FC = () => {
+  const { products, isAuthenticated, isAdmin, logout } = useApp();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('Все');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [cartOpen, setCartOpen] = useState(false);
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [progressOpen, setProgressOpen] = useState(false);
-  const [sortBy, setSortBy] = useState<'default' | 'price-asc' | 'price-desc' | 'intensity'>('default');
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [isProgressOpen, setIsProgressOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState<'shop' | 'admin'>('shop');
 
   const filteredProducts = useMemo(() => {
-    let result = products.filter(p => {
-      const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.description.toLowerCase().includes(search.toLowerCase()) ||
-        p.origin.toLowerCase().includes(search.toLowerCase()) ||
-        p.flavor.some(f => f.toLowerCase().includes(search.toLowerCase()));
-      const matchesCategory = category === 'Все' || p.category === category;
+    return products.filter(product => {
+      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.flavor.some(f => f.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchesCategory = selectedCategory === 'Все' || product.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
+  }, [products, searchQuery, selectedCategory]);
 
-    switch (sortBy) {
-      case 'price-asc':
-        result = [...result].sort((a, b) => a.price - b.price);
-        break;
-      case 'price-desc':
-        result = [...result].sort((a, b) => b.price - a.price);
-        break;
-      case 'intensity':
-        result = [...result].sort((a, b) => b.intensity - a.intensity);
-        break;
-    }
+  // Show login page if not authenticated
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
 
-    return result;
-  }, [search, category, sortBy]);
-
-  const handleCheckout = () => {
-    setCartOpen(false);
-    setCheckoutOpen(true);
-  };
+  // Show admin page
+  if (currentPage === 'admin' && isAdmin) {
+    return <AdminPage onBack={() => setCurrentPage('shop')} />;
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-amber-50 via-orange-50/30 to-amber-50">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100">
       <Header
-        onCartClick={() => setCartOpen(true)}
-        onProgressClick={() => setProgressOpen(true)}
+        onCartClick={() => setIsCartOpen(true)}
+        onProgressClick={() => setIsProgressOpen(true)}
       />
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-amber-900 via-amber-800 to-amber-900 text-white">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-10 left-10 text-6xl animate-pulse">☕</div>
-          <div className="absolute top-20 right-20 text-4xl animate-pulse delay-300">🫘</div>
-          <div className="absolute bottom-10 left-1/3 text-5xl animate-pulse delay-700">✨</div>
+      {/* Admin Navigation */}
+      {isAdmin && (
+        <div className="bg-amber-800/90 text-amber-100 py-2 px-4">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <span className="text-sm flex items-center gap-2">
+              <span>🔑</span> Вы вошли как администратор
+            </span>
+            <button
+              onClick={() => setCurrentPage('admin')}
+              className="bg-amber-700 hover:bg-amber-600 text-white text-sm px-3 py-1 rounded-lg transition-all"
+            >
+              ⚙️ Админ-панель
+            </button>
+          </div>
         </div>
-        <div className="max-w-7xl mx-auto px-4 py-12 md:py-16 relative">
-          <div className="max-w-2xl">
-            <h2 className="text-3xl md:text-4xl font-bold mb-3 leading-tight">
-              Откройте мир<br />
-              <span className="text-amber-300">спешелти-кофе</span>
+      )}
+
+      {/* Hero Section */}
+      <section className="relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 py-12 md:py-20">
+          <div className="text-center">
+            <h2 className="text-4xl md:text-6xl font-bold text-amber-900 mb-4">
+              Specialty Coffee
             </h2>
-            <p className="text-amber-200 text-sm md:text-base mb-6 leading-relaxed">
-              Отборные зёрна с лучших плантаций мира, обжаренные с заботой о каждом нюансе вкуса.
-              Покупайте кофе и зарабатывайте очки лояльности!
+            <p className="text-lg md:text-xl text-amber-700 max-w-2xl mx-auto mb-8">
+              Откройте мир изысканного кофе. Каждая чашка — путешествие к истокам вкуса.
             </p>
-            <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-1.5 bg-amber-700/50 rounded-full px-3 py-1.5">
-                <span>🏆</span>
-                <span className="text-amber-100">Система уровней</span>
-              </div>
-              <div className="flex items-center gap-1.5 bg-amber-700/50 rounded-full px-3 py-1.5">
-                <span>✨</span>
-                <span className="text-amber-100">Бонусные очки</span>
-              </div>
-              <div className="hidden sm:flex items-center gap-1.5 bg-amber-700/50 rounded-full px-3 py-1.5">
-                <span>🎯</span>
-                <span className="text-amber-100">Достижения</span>
-              </div>
+            <div className="flex items-center justify-center gap-4 text-sm text-amber-600">
+              <span className="flex items-center gap-1">🌍 Прямые поставки</span>
+              <span className="flex items-center gap-1">🔥 Свежая обжарка</span>
+              <span className="flex items-center gap-1">📦 Быстрая доставка</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Search & Filters */}
-      <section className="max-w-7xl mx-auto px-4 py-6">
-        <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between mb-4">
+      {/* Search and Filters */}
+      <section className="max-w-7xl mx-auto px-4 mb-8">
+        <div className="bg-white rounded-2xl shadow-md p-4 md:p-6 border border-amber-100">
           {/* Search */}
-          <div className="relative flex-1 max-w-md">
-            <svg xmlns="http://www.w3.org/2000/svg" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+          <div className="relative mb-4">
             <input
               type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Поиск по названию, вкусу, стране..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-amber-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none transition-all bg-white shadow-sm"
+              placeholder="Поиск по названию, описанию или вкусу..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 rounded-xl border border-amber-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none transition-all bg-amber-50/50"
             />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-amber-400 absolute left-4 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
           </div>
 
-          {/* Sort */}
-          <select
-            value={sortBy}
-            onChange={e => setSortBy(e.target.value as typeof sortBy)}
-            className="px-4 py-2.5 rounded-xl border border-amber-200 bg-white text-amber-800 text-sm shadow-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
-          >
-            <option value="default">По умолчанию</option>
-            <option value="price-asc">Цена: по возрастанию</option>
-            <option value="price-desc">Цена: по убыванию</option>
-            <option value="intensity">По интенсивности</option>
-          </select>
+          {/* Category Filters */}
+          <div className="flex flex-wrap gap-2">
+            {categories.map(category => (
+              <button
+                key={category}
+                onClick={() => setSelectedCategory(category)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  selectedCategory === category
+                    ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-md'
+                    : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
+                }`}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
         </div>
+      </section>
 
-        {/* Category Filters */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          {categories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setCategory(cat)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                category === cat
-                  ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-md'
-                  : 'bg-white text-amber-700 border border-amber-200 hover:border-amber-400 hover:bg-amber-50'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-
-        {/* Results Count */}
-        <p className="text-sm text-amber-600 mb-4">
-          {filteredProducts.length === 0
-            ? 'Ничего не найдено 😔'
-            : `Найдено: ${filteredProducts.length} ${filteredProducts.length === 1 ? 'товар' : filteredProducts.length < 5 ? 'товара' : 'товаров'}`
-          }
-        </p>
-
-        {/* Products Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          {filteredProducts.map(product => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onSelect={setSelectedProduct}
-            />
-          ))}
-        </div>
-
-        {filteredProducts.length === 0 && (
+      {/* Products Grid */}
+      <section className="max-w-7xl mx-auto px-4 pb-12">
+        {filteredProducts.length === 0 ? (
           <div className="text-center py-12">
             <span className="text-5xl mb-4 block">🔍</span>
-            <p className="text-amber-700 font-medium">Попробуйте изменить параметры поиска</p>
+            <p className="text-xl text-amber-700">Ничего не найдено</p>
+            <p className="text-amber-500 mt-2">Попробуйте изменить параметры поиска</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredProducts.map(product => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onClick={() => setSelectedProduct(product)}
+              />
+            ))}
           </div>
         )}
       </section>
 
       {/* Footer */}
-      <footer className="bg-amber-900 text-amber-200 mt-12">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <h4 className="font-bold text-amber-50 mb-2 flex items-center gap-2">
-                <span>☕</span> Brew & Bean
-              </h4>
-              <p className="text-sm text-amber-300">
-                Specialty coffee roasters. Мы обжариваем кофе с 2018 года и помогаем людям открывать новые вкусы.
-              </p>
-            </div>
-            <div>
-              <h4 className="font-bold text-amber-50 mb-2">Программа лояльности</h4>
-              <ul className="text-sm space-y-1 text-amber-300">
-                <li>🎯 Зарабатывайте очки за каждую покупку</li>
-                <li>🏆 Разблокируйте достижения</li>
-                <li>⭐ Повышайте свой уровень</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold text-amber-50 mb-2">Контакты</h4>
-              <ul className="text-sm space-y-1 text-amber-300">
-                <li>📍 Москва, ул. Кофейная, 42</li>
-                <li>📞 +7 (495) 123-45-67</li>
-                <li>✉️ hello@brewandbean.ru</li>
-              </ul>
-            </div>
+      <footer className="bg-amber-900 text-amber-100 py-8">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <span className="text-2xl">☕</span>
+            <span className="text-xl font-bold">Brew & Bean</span>
           </div>
-          <div className="border-t border-amber-800 mt-6 pt-4 text-center text-xs text-amber-400">
-            © 2026 Brew & Bean. Все права защищены.
+          <p className="text-sm text-amber-300 mb-4">Specialty Coffee Roasters</p>
+          <div className="flex items-center justify-center gap-4 text-xs text-amber-400">
+            <button onClick={logout} className="hover:text-amber-200 transition-colors">
+              Выйти из аккаунта
+            </button>
           </div>
         </div>
       </footer>
 
-      {/* Modals & Panels */}
+      {/* Modals */}
       {selectedProduct && (
         <ProductDetail
           product={selectedProduct}
@@ -208,21 +166,30 @@ const AppContent: React.FC = () => {
         />
       )}
 
-      <CartPanel
-        isOpen={cartOpen}
-        onClose={() => setCartOpen(false)}
-        onCheckout={handleCheckout}
-      />
+      {isCartOpen && (
+        <CartPanel
+          isOpen={isCartOpen}
+          onClose={() => setIsCartOpen(false)}
+          onCheckout={() => {
+            setIsCartOpen(false);
+            setIsCheckoutOpen(true);
+          }}
+        />
+      )}
 
-      <CheckoutModal
-        isOpen={checkoutOpen}
-        onClose={() => setCheckoutOpen(false)}
-      />
+      {isCheckoutOpen && (
+        <CheckoutModal
+          isOpen={isCheckoutOpen}
+          onClose={() => setIsCheckoutOpen(false)}
+        />
+      )}
 
-      <ProgressPanel
-        isOpen={progressOpen}
-        onClose={() => setProgressOpen(false)}
-      />
+      {isProgressOpen && (
+        <ProgressPanel
+          isOpen={isProgressOpen}
+          onClose={() => setIsProgressOpen(false)}
+        />
+      )}
 
       <AchievementToast />
     </div>
@@ -232,7 +199,7 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <AppProvider>
-      <AppContent />
+      <MainApp />
     </AppProvider>
   );
 };

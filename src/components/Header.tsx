@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import { getLevelName, getPointsForLevel } from '../data/products';
 
 const Header: React.FC<{ onCartClick: () => void; onProgressClick: () => void }> = ({ onCartClick, onProgressClick }) => {
-  const { cartCount, progress } = useApp();
+  const { cartCount, progress, user, logout } = useApp();
   const nextLevelPoints = getPointsForLevel(progress.level + 1);
   const currentLevelPoints = getPointsForLevel(progress.level);
   const progressPercent = nextLevelPoints > currentLevelPoints
@@ -24,6 +24,21 @@ const Header: React.FC<{ onCartClick: () => void; onProgressClick: () => void }>
         </div>
 
         <div className="flex items-center gap-2 md:gap-4">
+          {/* User Info */}
+          <div className="hidden md:flex items-center gap-2">
+            <div className="text-right">
+              <p className="text-sm font-medium text-amber-100">{user?.name}</p>
+              <p className="text-xs text-amber-300">{user?.email}</p>
+            </div>
+            <button
+              onClick={logout}
+              className="bg-red-500/20 hover:bg-red-500/30 text-red-200 rounded-lg px-2 py-1 text-xs transition-all border border-red-400/30"
+              title="Выйти"
+            >
+              🚪
+            </button>
+          </div>
+
           {/* Level Badge */}
           <button
             onClick={onProgressClick}
